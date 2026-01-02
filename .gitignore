@@ -1,0 +1,23 @@
+# Database config
+includes/db.php
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+*.temp
+
+# Junie
+.junie/

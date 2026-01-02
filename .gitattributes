@@ -1,0 +1,19 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Force bash scripts to use LF line endings
+*.sh text eol=lf
+
+# Force web assets to be recognized as text
+*.php text
+*.js text
+*.css text
+*.sql text
+*.md text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

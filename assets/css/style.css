@@ -1,0 +1,64 @@
+.chart-container {
+    position: relative;
+    height: 500px;
+    width: 100%;
+}
+
+#chart-message {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #6c757d;
+    z-index: 10;
+}
+
+.chart-container.loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 11;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Normalize height for navbar elements */
+.navbar .form-select-sm, 
+.navbar .form-control-sm, 
+.navbar .btn-sm {
+    height: 31px;
+}
+.navbar .btn-sm {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Raw Data Table Enhancements */
+#speedHistoryTable tbody td,
+#mtrDataTable tbody td {
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3) !important;
+}
+
+#speedHistoryTable tbody tr:last-child td,
+#mtrDataTable tbody tr:last-child td {
+    border-bottom: none !important;
+}
