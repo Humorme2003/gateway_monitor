@@ -197,9 +197,9 @@
                                         </a>
                                     </div>
                                 </div>
-                                <div class="table-responsive">
+                                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
                                     <table id="speedHistoryTable" class="table table-sm table-hover align-middle">
-                                        <thead class="table-light">
+                                        <thead class="table-light sticky-top">
                                             <tr>
                                                 <th>Host</th>
                                                 <th>Time</th>
