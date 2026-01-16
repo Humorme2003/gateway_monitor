@@ -212,6 +212,8 @@ async function loadChartData() {
 
         let data;
         let events = [];
+        const bucketSeconds = (rawData && rawData.bucket_seconds !== undefined) ? Number(rawData.bucket_seconds) : 0;
+        const bucketMs = bucketSeconds > 0 ? bucketSeconds * 1000 : 0;
         
         if (rawData.data && rawData.events) {
             data = rawData.data;
@@ -264,6 +266,9 @@ async function loadChartData() {
         rawTimestamps = Array.from(normalizedTimestampsSet).map(t => new Date(t)).sort((a, b) => a - b);
         rawTimestamps = rawTimestamps.filter(d => !isNaN(d.getTime()));
 
+        const timestampToIndex = new Map();
+        rawTimestamps.forEach((t, idx) => timestampToIndex.set(t.getTime(), idx));
+
         labels = rawTimestamps.map(date => {
             if (showDate) {
                 return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -276,6 +281,8 @@ async function loadChartData() {
             if (!Array.isArray(results)) continue;
 
             const color = HOST_COLORS[i % HOST_COLORS.length];
+            const hidePointMarkers = (period === '24h' || period === '7d' || period === '30d');
+            const hideLoadedVisuals = (period === '24h' || period === '7d' || period === '30d');
             const resultMap = new Map(results.map(r => {
                 const d = new Date(r.timestamp);
                 d.setSeconds(0, 0);
@@ -293,8 +300,23 @@ async function loadChartData() {
                 tension: 0.3,
                 fill: false,
                 spanGaps: true,
-                pointRadius: (period === '7d' || period === '30d') ? 0 : 2,
+                pointRadius: (ctx) => {
+                    // For longer ranges we intentionally hide point markers to avoid clutter.
+                    if (hidePointMarkers) return 0;
+
+                    const under = ctx.dataset.underLoad && ctx.dataset.underLoad[ctx.dataIndex];
+                    return under ? 3 : 2;
+                },
                 pointHoverRadius: 5,
+                pointBackgroundColor: (ctx) => {
+                    const under = ctx.dataset.underLoad && ctx.dataset.underLoad[ctx.dataIndex];
+                    // Keep LOADED state in tooltip, but don't visually mark points on longer ranges.
+                    return (!hideLoadedVisuals && under) ? 'rgba(255, 165, 0, 0.95)' : color;
+                },
+                pointBorderColor: (ctx) => {
+                    const under = ctx.dataset.underLoad && ctx.dataset.underLoad[ctx.dataIndex];
+                    return (!hideLoadedVisuals && under) ? 'rgba(255, 165, 0, 0.95)' : color;
+                },
                 underLoad: rawTimestamps.map(t => {
                     const r = resultMap.get(t.getTime());
                     return r ? r.is_under_load : false;
@@ -305,39 +327,66 @@ async function loadChartData() {
 
         // Update underLoad flag and add vertical markers for speed test events
         if (!['bufferbloat', 'download', 'upload', 'speedtest'].includes(metric)) {
+            // For longer ranges, keep LOADED info available in tooltips but do not draw event lines (too cluttered).
+            const annotationLimit = (period === '24h' || period === '7d' || period === '30d') ? 0 : 200;
+            let annotationCount = 0;
+
             events.forEach(event => {
                 const eventTime = new Date(event.timestamp).getTime();
                 const eventHost = event.host_name;
-                let closestIdx = -1;
-                let minDiff = Infinity;
 
-                rawTimestamps.forEach((t, idx) => {
-                    const diff = Math.abs(t.getTime() - eventTime);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closestIdx = idx;
+                if (isNaN(eventTime) || !eventHost) return;
+
+                let idx;
+                let toleranceMs = 60000;
+
+                if (bucketMs > 0) {
+                    const bucketKey = Math.floor(eventTime / bucketMs) * bucketMs;
+                    idx = timestampToIndex.get(bucketKey);
+                    toleranceMs = bucketMs;
+                } else {
+                    const d = new Date(eventTime);
+                    d.setSeconds(0, 0);
+                    idx = timestampToIndex.get(d.getTime());
+                }
+
+                if (idx === undefined) {
+                    // Fallback: find nearest point within tolerance (handles gaps / unexpected timestamp formats)
+                    let closestIdx = -1;
+                    let minDiff = Infinity;
+                    rawTimestamps.forEach((t, i2) => {
+                        const diff = Math.abs(t.getTime() - eventTime);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestIdx = i2;
+                        }
+                    });
+
+                    if (closestIdx !== -1 && minDiff <= toleranceMs) {
+                        idx = closestIdx;
+                    } else {
+                        return;
                     }
+                }
 
-                    if (diff < 60000) { // Within 60 seconds of the minute-normalized point
-                        datasets.forEach(ds => {
-                            // Correlate loaded status to the specific host
-                            if (ds.label === eventHost && ds.underLoad) {
-                                ds.underLoad[idx] = true;
-                            }
-                        });
+                datasets.forEach(ds => {
+                    // Correlate loaded status to the specific host
+                    if (ds.label === eventHost && ds.underLoad) {
+                        ds.underLoad[idx] = true;
                     }
                 });
 
-                // Add orange vertical line for the event
-                if (closestIdx !== -1 && minDiff < 60000 && period !== '7d' && period !== '30d') {
+                // Add orange vertical line for the event (throttled to avoid clutter/perf issues)
+                if (annotationCount < annotationLimit) {
                     annotations.push({
                         type: 'line',
-                        xMin: closestIdx,
-                        xMax: closestIdx,
+                        xMin: idx,
+                        xMax: idx,
                         borderColor: 'rgba(255, 165, 0, 0.7)',
                         borderWidth: 2,
                         label: { display: false }
                     });
+                    annotationCount++;
                 }
             });
         }
