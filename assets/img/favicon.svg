@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Gateway Monitor">
+  <defs>
+    <style>
+      .bg{fill:#0d6efd}
+      .fg{fill:#ffffff}
+    </style>
+  </defs>
+  <circle class="bg" cx="32" cy="32" r="30"/>
+  <path class="fg" d="M12 30.5 32 16l20 14.5v19.5a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2V30.5Zm7 0v15h26v-15L32 21.2 19 30.5Z"/>
+  <path class="fg" d="M26 44.5v-10h12v10h-3v-7h-6v7h-3Z"/>
+</svg>
